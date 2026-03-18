@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  PENDING
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum ExtensionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuditAction {
+  MEMBERSHIP_CREATED
+  MEMBERSHIP_CANCELLED
+  MEMBERSHIP_EXTENDED
+  PAYMENT_RECORDED
+  PLAN_CREATED
+  PLAN_UPDATED
+  USER_REGISTERED
+  EXTENSION_APPROVED
+  EXTENSION_REJECTED
+  DATA_EXPORTED
+  DATA_IMPORTED
+  ANNOUNCEMENT_CREATED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model Club {
+  id                   String             @id @default(cuid())
+  name                 String
+  slug                 String             @unique
+  logoUrl              String?
+  inviteCode           String             @unique
+  adminId              String             @unique
+  subscriptionStatus   SubscriptionStatus @default(TRIAL)
+  trialEndsAt          DateTime
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  admin         User           @relation("ClubAdmin", fields: [adminId], references: [id])
+  members       User[]         @relation("ClubMembers")
+  plans         Plan[]
+  memberships   Membership[]
+  announcements Announcement[]
+
+  @@map("clubs")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  phone         String?
+  role          Role      @default(USER)
+  currency      String    @default("CAD")
+  clubId        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  memberships       Membership[]
+  payments          Payment[]
+  extensionRequests ExtensionRequest[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  club              Club?              @relation("ClubMembers", fields: [clubId], references: [id])
+  ownedClub         Club?              @relation("ClubAdmin")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  duration    Int
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("CAD")
+  maxSessions Int?
+  features    String[]
+  isActive    Boolean  @default(true)
+  clubId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+  club        Club?        @relation(fields: [clubId], references: [id])
+
+  @@map("plans")
+}
+
+model Membership {
+  id        String           @id @default(cuid())
+  userId    String
+  planId    String
+  clubId    String?
+  status    MembershipStatus @default(PENDING)
+  startDate DateTime
+  endDate   DateTime
+  sessions  Int              @default(0)
+  notes     String?          @db.Text
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              Plan               @relation(fields: [planId], references: [id])
+  club              Club?              @relation(fields: [clubId], references: [id])
+  payments          Payment[]
+  extensionRequests ExtensionRequest[]
+
+  @@map("memberships")
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  userId       String
+  membershipId String
+  amount       Decimal       @db.Decimal(10, 2)
+  currency     String        @default("CAD")
+  status       PaymentStatus @default(PENDING)
+  method       String?
+  reference    String?
+  notes        String?       @db.Text
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@map("payments")
+}
+
+model ExtensionRequest {
+  id           String          @id @default(cuid())
+  userId       String
+  membershipId String
+  days         Int
+  reason       String?         @db.Text
+  status       ExtensionStatus @default(PENDING)
+  reviewedBy   String?
+  reviewNote   String?         @db.Text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@map("extension_requests")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  clubId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club Club? @relation(fields: [clubId], references: [id])
+
+  @@map("announcements")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  type      String   @default("general")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  details    String?     @db.Text
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

@@ -1,0 +1,43 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { Navbar } from "@/components/layout/navbar";
+import { CurrencyProvider } from "@/context/currency-context";
+import { NoClubScreen } from "@/components/layout/no-club-screen";
+import type { CurrencyCode } from "@/lib/currency";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const unreadCount = await prisma.notification.count({
+    where: { userId: session.user.id, isRead: false },
+  });
+
+  const clubName = session.user.clubName ?? null;
+
+  // Fetch club logo if the user belongs to a club
+  const clubLogoUrl = session.user.clubId
+    ? await prisma.club.findUnique({
+        where: { id: session.user.clubId },
+        select: { logoUrl: true },
+      }).then((c) => c?.logoUrl ?? null)
+    : null;
+
+  return (
+    <CurrencyProvider initialCurrency={(session.user.currency as CurrencyCode) ?? "CAD"}>
+      <div className="min-h-screen bg-gray-50">
+        <header className="fixed top-0 left-0 right-0 z-50">
+          <Navbar user={session.user} unreadCount={unreadCount} clubName={clubName} clubLogoUrl={clubLogoUrl} />
+        </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+          {session.user.clubId ? children : <NoClubScreen />}
+        </main>
+      </div>
+    </CurrencyProvider>
+  );
+}
