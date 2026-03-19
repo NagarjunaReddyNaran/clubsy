@@ -27,7 +27,10 @@ export default async function MembershipPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const activeMembership = memberships.find((m) => m.status === "ACTIVE");
+  const now = new Date();
+  const activeMembership = memberships.find(
+    (m) => m.status === "ACTIVE" && new Date(m.endDate) >= now
+  );
   const history = memberships.filter((m) => m.status !== "ACTIVE");
 
   return (

@@ -30,7 +30,7 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Full page reload so the server re-reads the session + club from DB
+      // Full page reload forces a new server session read with the new clubId
       window.location.href = "/admin";
     } catch {
       setError("Something went wrong");

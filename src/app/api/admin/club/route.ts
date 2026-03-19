@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UpdateClubSchema } from "@/lib/validations";
 import { generateSlug } from "@/lib/subscription";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   const session = await auth();
@@ -59,7 +60,7 @@ export async function PATCH(req: NextRequest) {
     const updated = await prisma.club.update({ where: { id: club.id }, data });
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Update club error:", error);
+    logger.error("Update club error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

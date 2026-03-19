@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/layout/navbar";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { CurrencyProvider } from "@/context/currency-context";
 import { NoClubScreen } from "@/components/layout/no-club-screen";
 import type { CurrencyCode } from "@/lib/currency";
@@ -34,9 +35,10 @@ export default async function DashboardLayout({
         <header className="fixed top-0 left-0 right-0 z-50">
           <Navbar user={session.user} unreadCount={unreadCount} clubName={clubName} clubLogoUrl={clubLogoUrl} />
         </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 sm:pb-8">
           {session.user.clubId ? children : <NoClubScreen />}
         </main>
+        <BottomNav role="USER" unreadCount={unreadCount} />
       </div>
     </CurrencyProvider>
   );

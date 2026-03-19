@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -23,24 +24,27 @@ export default async function AdminDashboardPage() {
 
   const clubId = session.user.clubId;
 
-  const [
-    totalUsers,
-    activeMemberships,
-    expiredMemberships,
-    pendingExtensions,
-    totalRevenue,
-    recentPayments,
-    expiringMemberships,
-    planStats,
-  ] = await Promise.all([
-    prisma.user.count({ where: { role: "USER", ...(clubId ? { clubId } : {}) } }),
-    prisma.membership.count({ where: { status: "ACTIVE", ...(clubId ? { clubId } : {}) } }),
-    prisma.membership.count({ where: { status: "EXPIRED", ...(clubId ? { clubId } : {}) } }),
-    prisma.extensionRequest.count({ where: { status: "PENDING", ...(clubId ? { membership: { clubId } } : {}) } }),
-    prisma.payment.aggregate({
-      where: { status: "COMPLETED", ...(clubId ? { membership: { clubId } } : {}) },
-      _sum: { amount: true },
-    }),
+  const getStats = unstable_cache(
+    async () => {
+      return Promise.all([
+        prisma.user.count({ where: { role: "USER", deletedAt: null, ...(clubId ? { clubId } : {}) } }),
+        prisma.membership.count({ where: { status: "ACTIVE", endDate: { gte: new Date() }, ...(clubId ? { clubId } : {}) } }),
+        prisma.membership.count({ where: { status: "EXPIRED", ...(clubId ? { clubId } : {}) } }),
+        prisma.extensionRequest.count({ where: { status: "PENDING", ...(clubId ? { membership: { clubId } } : {}) } }),
+        prisma.payment.aggregate({
+          where: { status: "COMPLETED", ...(clubId ? { membership: { clubId } } : {}) },
+          _sum: { amount: true },
+        }),
+      ]);
+    },
+    [`admin-stats-${clubId ?? "all"}`],
+    { revalidate: 60, tags: [`club-${clubId ?? "all"}`] }
+  );
+
+  const [totalUsers, activeMemberships, expiredMemberships, pendingExtensions, totalRevenue] =
+    await getStats();
+
+  const [recentPayments, expiringMemberships, planStats] = await Promise.all([
     prisma.payment.findMany({
       where: { status: "COMPLETED", ...(clubId ? { membership: { clubId } } : {}) },
       include: {
@@ -69,7 +73,7 @@ export default async function AdminDashboardPage() {
     prisma.plan.findMany({
       where: { isActive: true, ...(clubId ? { clubId } : {}) },
       include: {
-        _count: { select: { memberships: { where: { status: "ACTIVE" } } } },
+        _count: { select: { memberships: { where: { status: "ACTIVE", endDate: { gte: new Date() } } } } },
       },
     }),
   ]);

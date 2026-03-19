@@ -54,7 +54,27 @@ async function main() {
   console.log("Club:", club.name);
 
   // ── Plans ──────────────────────────────────────────────────
-  const [planMonthly, planQuarterly, planSessions] = await Promise.all([
+  const [planDaily, planMonthly, planQuarterly, planAnnual, planSessions] = await Promise.all([
+    prisma.plan.upsert({
+      where: { id: "plan-daily" },
+      update: {},
+      create: {
+        id: "plan-daily",
+        name: "Daily Drop-In",
+        description: "Single-day court access. Perfect for casual or visiting players.",
+        duration: 1,
+        price: 15,
+        currency: "CAD",
+        maxSessions: 1,
+        features: [
+          "Full court access for 1 day",
+          "Equipment rental included",
+          "Locker access",
+        ],
+        isActive: true,
+        clubId: club.id,
+      },
+    }),
     prisma.plan.upsert({
       where: { id: "plan-monthly" },
       update: {},
@@ -63,7 +83,7 @@ async function main() {
         name: "Monthly Plan",
         description: "Perfect for regular players. Full court access every day.",
         duration: 30,
-        price: 1500,
+        price: 80,
         currency: "CAD",
         maxSessions: null,
         features: ["Unlimited court access", "Peak hour booking", "Equipment included", "Locker facility"],
@@ -79,7 +99,7 @@ async function main() {
         name: "Quarterly Plan",
         description: "Best value for committed players — save 20% over monthly.",
         duration: 90,
-        price: 3600,
+        price: 200,
         currency: "CAD",
         maxSessions: null,
         features: [
@@ -95,6 +115,31 @@ async function main() {
       },
     }),
     prisma.plan.upsert({
+      where: { id: "plan-annual" },
+      update: {},
+      create: {
+        id: "plan-annual",
+        name: "Annual Premium",
+        description: "Best for dedicated members — full year access with exclusive perks.",
+        duration: 365,
+        price: 700,
+        currency: "CAD",
+        maxSessions: null,
+        features: [
+          "Unlimited court access",
+          "Peak & off-peak booking",
+          "Equipment included",
+          "Dedicated locker",
+          "Guest passes (4/month)",
+          "Priority booking",
+          "Free coaching session (1/quarter)",
+          "Member-only events",
+        ],
+        isActive: true,
+        clubId: club.id,
+      },
+    }),
+    prisma.plan.upsert({
       where: { id: "plan-sessions" },
       update: {},
       create: {
@@ -102,7 +147,7 @@ async function main() {
         name: "Session Pack",
         description: "10-session pack for occasional players. Valid 60 days.",
         duration: 60,
-        price: 800,
+        price: 120,
         currency: "CAD",
         maxSessions: 10,
         features: [
@@ -116,7 +161,7 @@ async function main() {
       },
     }),
   ]);
-  console.log("Plans: 3");
+  console.log("Plans: 5");
 
   // ── Players ────────────────────────────────────────────────
   const playerPassword = await bcrypt.hash("player123", 10);
@@ -179,7 +224,7 @@ async function main() {
   await upsertPayment("payment-test-player-1", {
     userId: players["player@clubsy.app"].id,
     membershipId: m1.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "cash",
@@ -201,7 +246,7 @@ async function main() {
   await upsertPayment("payment-alex-1", {
     userId: players["alex@example.com"].id,
     membershipId: m2.id,
-    amount: 3600,
+    amount: 200,
     currency: "CAD",
     status: "COMPLETED",
     method: "credit_card",
@@ -223,7 +268,7 @@ async function main() {
   await upsertPayment("payment-sarah-1", {
     userId: players["sarah@example.com"].id,
     membershipId: m3.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "e-transfer",
@@ -245,7 +290,7 @@ async function main() {
   await upsertPayment("payment-michael-1", {
     userId: players["michael@example.com"].id,
     membershipId: m4.id,
-    amount: 800,
+    amount: 120,
     currency: "CAD",
     status: "COMPLETED",
     method: "cash",
@@ -267,7 +312,7 @@ async function main() {
   await upsertPayment("payment-emma-1", {
     userId: players["emma@example.com"].id,
     membershipId: m5.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "credit_card",
@@ -276,7 +321,7 @@ async function main() {
     createdAt: daysAgo(40),
   });
 
-  // James — Monthly, PENDING
+  // James — Monthly, PENDING (awaiting payment confirmation)
   const m6 = await upsertMembership("membership-james", {
     userId: players["james@example.com"].id,
     planId: planMonthly.id,
@@ -289,7 +334,7 @@ async function main() {
   await upsertPayment("payment-james-1", {
     userId: players["james@example.com"].id,
     membershipId: m6.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "PENDING",
     method: "e-transfer",
@@ -311,7 +356,7 @@ async function main() {
   await upsertPayment("payment-priya-1", {
     userId: players["priya@example.com"].id,
     membershipId: m7.id,
-    amount: 3600,
+    amount: 200,
     currency: "CAD",
     status: "REFUNDED",
     method: "credit_card",
@@ -333,7 +378,7 @@ async function main() {
   await upsertPayment("payment-david-1", {
     userId: players["david@example.com"].id,
     membershipId: m8.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "cash",
@@ -341,7 +386,7 @@ async function main() {
     paidAt: daysAgo(3),
     createdAt: daysAgo(3),
   });
-  // David also has a previous expired membership
+  // David — previous expired monthly
   const m8b = await upsertMembership("membership-david-old", {
     userId: players["david@example.com"].id,
     planId: planMonthly.id,
@@ -354,7 +399,7 @@ async function main() {
   await upsertPayment("payment-david-2", {
     userId: players["david@example.com"].id,
     membershipId: m8b.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "cash",
@@ -376,7 +421,7 @@ async function main() {
   await upsertPayment("payment-lisa-1", {
     userId: players["lisa@example.com"].id,
     membershipId: m9.id,
-    amount: 800,
+    amount: 120,
     currency: "CAD",
     status: "COMPLETED",
     method: "e-transfer",
@@ -398,7 +443,7 @@ async function main() {
   await upsertPayment("payment-tom-1", {
     userId: players["tom@example.com"].id,
     membershipId: m10.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "credit_card",
@@ -407,20 +452,20 @@ async function main() {
     createdAt: daysAgo(75),
   });
 
-  // Maya — Quarterly, ACTIVE
+  // Maya — Annual Premium, ACTIVE (upgraded from Quarterly)
   const m11 = await upsertMembership("membership-maya", {
     userId: players["maya@example.com"].id,
-    planId: planQuarterly.id,
+    planId: planAnnual.id,
     status: "ACTIVE",
     startDate: daysAgo(45),
-    endDate: daysFromNow(45),
+    endDate: daysFromNow(320),
     sessions: 22,
     clubId: club.id,
   });
   await upsertPayment("payment-maya-1", {
     userId: players["maya@example.com"].id,
     membershipId: m11.id,
-    amount: 3600,
+    amount: 700,
     currency: "CAD",
     status: "COMPLETED",
     method: "credit_card",
@@ -428,9 +473,89 @@ async function main() {
     paidAt: daysAgo(45),
     createdAt: daysAgo(45),
   });
+  // Maya — old quarterly (before upgrading to annual)
+  const m11b = await upsertMembership("membership-maya-old", {
+    userId: players["maya@example.com"].id,
+    planId: planQuarterly.id,
+    status: "EXPIRED",
+    startDate: daysAgo(135),
+    endDate: daysAgo(46),
+    sessions: 31,
+    clubId: club.id,
+  });
+  await upsertPayment("payment-maya-2", {
+    userId: players["maya@example.com"].id,
+    membershipId: m11b.id,
+    amount: 200,
+    currency: "CAD",
+    status: "COMPLETED",
+    method: "credit_card",
+    reference: "CC-011B",
+    paidAt: daysAgo(135),
+    createdAt: daysAgo(135),
+  });
 
-  // Chris — No membership (Inactive)
-  // (no upsert needed)
+  // Chris — Daily Drop-In history (3 separate day visits)
+  const m12a = await upsertMembership("membership-chris-1", {
+    userId: players["chris@example.com"].id,
+    planId: planDaily.id,
+    status: "EXPIRED",
+    startDate: daysAgo(14),
+    endDate: daysAgo(13),
+    sessions: 1,
+    clubId: club.id,
+  });
+  await upsertPayment("payment-chris-1", {
+    userId: players["chris@example.com"].id,
+    membershipId: m12a.id,
+    amount: 15,
+    currency: "CAD",
+    status: "COMPLETED",
+    method: "cash",
+    reference: "CASH-012A",
+    paidAt: daysAgo(14),
+    createdAt: daysAgo(14),
+  });
+  const m12b = await upsertMembership("membership-chris-2", {
+    userId: players["chris@example.com"].id,
+    planId: planDaily.id,
+    status: "EXPIRED",
+    startDate: daysAgo(7),
+    endDate: daysAgo(6),
+    sessions: 1,
+    clubId: club.id,
+  });
+  await upsertPayment("payment-chris-2", {
+    userId: players["chris@example.com"].id,
+    membershipId: m12b.id,
+    amount: 15,
+    currency: "CAD",
+    status: "COMPLETED",
+    method: "cash",
+    reference: "CASH-012B",
+    paidAt: daysAgo(7),
+    createdAt: daysAgo(7),
+  });
+  const m12c = await upsertMembership("membership-chris-3", {
+    userId: players["chris@example.com"].id,
+    planId: planDaily.id,
+    status: "ACTIVE",
+    startDate: daysAgo(0),
+    endDate: daysFromNow(1),
+    sessions: 0,
+    clubId: club.id,
+  });
+  await upsertPayment("payment-chris-3", {
+    userId: players["chris@example.com"].id,
+    membershipId: m12c.id,
+    amount: 15,
+    currency: "CAD",
+    status: "COMPLETED",
+    method: "cash",
+    reference: "CASH-012C",
+    paidAt: daysAgo(0),
+    createdAt: daysAgo(0),
+  });
 
   // Rachel — Monthly, ACTIVE
   const m13 = await upsertMembership("membership-rachel", {
@@ -445,7 +570,7 @@ async function main() {
   await upsertPayment("payment-rachel-1", {
     userId: players["rachel@example.com"].id,
     membershipId: m13.id,
-    amount: 1500,
+    amount: 80,
     currency: "CAD",
     status: "COMPLETED",
     method: "e-transfer",
@@ -588,21 +713,23 @@ async function main() {
 
   // ── Audit Logs ──────────────────────────────────────────────
   const auditEntries = [
-    { action: "PLAN_CREATED",        details: "Created plan: Monthly Plan",                        createdAt: daysAgo(90) },
-    { action: "PLAN_CREATED",        details: "Created plan: Quarterly Plan",                      createdAt: daysAgo(90) },
-    { action: "PLAN_CREATED",        details: "Created plan: Session Pack",                        createdAt: daysAgo(90) },
+    { action: "PLAN_CREATED",        details: "Created plan: Daily Drop-In ($15 CAD / 1 day)",     createdAt: daysAgo(90) },
+    { action: "PLAN_CREATED",        details: "Created plan: Monthly Plan ($80 CAD / 30 days)",    createdAt: daysAgo(90) },
+    { action: "PLAN_CREATED",        details: "Created plan: Quarterly Plan ($200 CAD / 90 days)", createdAt: daysAgo(90) },
+    { action: "PLAN_CREATED",        details: "Created plan: Annual Premium ($700 CAD / 365 days)",createdAt: daysAgo(90) },
+    { action: "PLAN_CREATED",        details: "Created plan: Session Pack ($120 CAD / 10 sessions)",createdAt: daysAgo(90) },
     { action: "USER_REGISTERED",     details: `Player registered: ${players["alex@example.com"].name}`,   createdAt: daysAgo(75) },
     { action: "USER_REGISTERED",     details: `Player registered: ${players["sarah@example.com"].name}`,  createdAt: daysAgo(70) },
     { action: "USER_REGISTERED",     details: `Player registered: ${players["maya@example.com"].name}`,   createdAt: daysAgo(65) },
     { action: "MEMBERSHIP_CREATED",  details: "Quarterly Plan membership created for Maya Patel",  createdAt: daysAgo(45) },
-    { action: "PAYMENT_RECORDED",    details: "Payment $36.00 CAD recorded — Alex Thompson",       createdAt: daysAgo(30) },
+    { action: "PAYMENT_RECORDED",    details: "Payment $200.00 CAD recorded — Alex Thompson",      createdAt: daysAgo(30) },
     { action: "USER_REGISTERED",     details: `Player registered: ${players["emma@example.com"].name}`,   createdAt: daysAgo(40) },
     { action: "MEMBERSHIP_CREATED",  details: "Monthly Plan membership created for Emma Wilson",   createdAt: daysAgo(40) },
     { action: "MEMBERSHIP_CANCELLED", details: "Quarterly Plan membership cancelled — Priya Sharma", createdAt: daysAgo(20) },
     { action: "EXTENSION_APPROVED",  details: "7-day extension approved for Emma Wilson",          createdAt: daysAgo(8) },
     { action: "USER_REGISTERED",     details: `Player registered: ${players["rachel@example.com"].name}`, createdAt: daysAgo(8) },
     { action: "MEMBERSHIP_CREATED",  details: "Monthly Plan membership created for Rachel Green",  createdAt: daysAgo(8) },
-    { action: "PAYMENT_RECORDED",    details: "Payment $15.00 CAD recorded — Test Player",         createdAt: daysAgo(10) },
+    { action: "PAYMENT_RECORDED",    details: "Payment $80.00 CAD recorded — Test Player",         createdAt: daysAgo(10) },
     { action: "ANNOUNCEMENT_CREATED", details: "Announcement published: Summer Tournament Registration", createdAt: daysAgo(2) },
     { action: "DATA_EXPORTED",       details: "Players list exported to CSV",                      createdAt: daysAgo(1) },
     { action: "MEMBERSHIP_EXTENDED", details: "Membership extended 7 days — Emma Wilson",          createdAt: daysAgo(7) },
@@ -639,9 +766,9 @@ async function main() {
   console.log("  Trial:     " + trialEndsAt.toDateString());
   console.log("\nData seeded:");
   console.log("  Players:    ", playerDefs.length);
-  console.log("  Plans:       3");
-  console.log("  Memberships: 14");
-  console.log("  Payments:    14");
+  console.log("  Plans:       5 (Daily Drop-In, Monthly, Quarterly, Annual Premium, Session Pack)");
+  console.log("  Memberships: 19");
+  console.log("  Payments:    19");
   console.log("  Extensions:  3");
   console.log("  Announcements:", announcements.length);
   console.log("  Notifications:", notifDefs.length);

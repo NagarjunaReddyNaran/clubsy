@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { CURRENCIES } from "@/lib/currency";
 import { Plus, X } from "lucide-react";
 
 interface Plan {
@@ -13,6 +14,7 @@ interface Plan {
   description: string | null;
   duration: number;
   price: string | number | { toString: () => string };
+  currency?: string;
   maxSessions: number | null;
   features: string[];
   isActive: boolean;
@@ -26,18 +28,23 @@ export function PlanForm({ plan }: PlanFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [features, setFeatures] = useState<string[]>(plan?.features || [""]);
+  const [features, setFeatures] = useState<string[]>(
+    plan?.features?.length ? plan.features : [""]
+  );
 
   const [formData, setFormData] = useState({
     name: plan?.name || "",
     description: plan?.description || "",
     duration: plan?.duration?.toString() || "30",
     price: plan?.price != null ? String(plan.price) : "",
+    currency: plan?.currency || "CAD",
     maxSessions: plan?.maxSessions?.toString() || "",
     isActive: plan?.isActive ?? true,
   });
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -95,6 +102,8 @@ export function PlanForm({ plan }: PlanFormProps) {
     }
   }
 
+  const selectedCurrency = CURRENCIES[formData.currency as keyof typeof CURRENCIES];
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -128,30 +137,52 @@ export function PlanForm({ plan }: PlanFormProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              id="price"
-              name="price"
-              label="Price (₹)"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="1500"
-              required
-            />
-            <Input
-              id="duration"
-              name="duration"
-              label="Duration (days)"
-              type="number"
-              min="1"
-              value={formData.duration}
-              onChange={handleChange}
-              placeholder="30"
-              required
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">
+                Price ({selectedCurrency?.symbol ?? formData.currency})
+              </label>
+              <input
+                id="price"
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="50.00"
+                required
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Currency</label>
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Object.values(CURRENCIES).map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          <Input
+            id="duration"
+            name="duration"
+            label="Duration (days)"
+            type="number"
+            min="1"
+            value={formData.duration}
+            onChange={handleChange}
+            placeholder="30"
+            required
+          />
 
           <Input
             id="maxSessions"
@@ -177,13 +208,15 @@ export function PlanForm({ plan }: PlanFormProps) {
                     placeholder={`Feature ${i + 1}`}
                     className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(i)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {features.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(i)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
               <button
@@ -213,11 +246,7 @@ export function PlanForm({ plan }: PlanFormProps) {
             <Button type="submit" loading={loading}>
               {plan ? "Update Plan" : "Create Plan"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
+            <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
           </div>

@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/currency";
 import { ExportButton } from "@/components/admin/export-button";
 import { DollarSign, FileText } from "lucide-react";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const statusColor: Record<string, "success" | "warning" | "danger" | "default"> = {
   COMPLETED: "success",

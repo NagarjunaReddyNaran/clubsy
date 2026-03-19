@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CreatePlanSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   const session = await auth();
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(plan, { status: 201 });
   } catch (error) {
-    console.error("Create plan error:", error);
+    logger.error("Create plan error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

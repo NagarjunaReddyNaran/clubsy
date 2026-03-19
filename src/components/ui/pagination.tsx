@@ -26,7 +26,7 @@ export function Pagination({ total, pageSize, currentPage }: PaginationProps) {
   const searchParams = useSearchParams();
   const totalPages = Math.ceil(total / pageSize);
 
-  if (totalPages <= 1) return null;
+  if (total === 0) return null;
 
   function goTo(page: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -34,51 +34,55 @@ export function Pagination({ total, pageSize, currentPage }: PaginationProps) {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
+  const from = (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, total);
   const btnBase = "w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors";
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100">
       <p className="text-sm text-gray-500 order-2 sm:order-1">
-        {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)} of{" "}
-        <span className="font-medium text-gray-700">{total}</span>
+        Showing <span className="font-medium text-gray-700">{from}–{to}</span> of{" "}
+        <span className="font-medium text-gray-700">{total}</span> record{total !== 1 ? "s" : ""}
       </p>
 
-      <div className="flex items-center gap-1 order-1 sm:order-2">
-        <button
-          onClick={() => goTo(currentPage - 1)}
-          disabled={currentPage <= 1}
-          className={cn(btnBase, "text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed")}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1 order-1 sm:order-2">
+          <button
+            onClick={() => goTo(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className={cn(btnBase, "text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed")}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-        {pageRange(currentPage, totalPages).map((p, i) =>
-          p === "…" ? (
-            <span key={`ellipsis-${i}`} className="w-8 text-center text-gray-400 text-sm">…</span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => goTo(p)}
-              className={cn(
-                btnBase,
-                p === currentPage
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              {p}
-            </button>
-          )
-        )}
+          {pageRange(currentPage, totalPages).map((p, i) =>
+            p === "…" ? (
+              <span key={`ellipsis-${i}`} className="w-8 text-center text-gray-400 text-sm">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => goTo(p)}
+                className={cn(
+                  btnBase,
+                  p === currentPage
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                {p}
+              </button>
+            )
+          )}
 
-        <button
-          onClick={() => goTo(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          className={cn(btnBase, "text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed")}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+          <button
+            onClick={() => goTo(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className={cn(btnBase, "text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed")}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

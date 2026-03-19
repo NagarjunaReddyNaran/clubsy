@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CreatePlayerSchema } from "@/lib/validations";
-import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
+import { createPlayer } from "@/lib/services/player.service";
+import { canAddPlayer } from "@/lib/features";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
 
   const where = {
     role: "USER" as const,
+    deletedAt: null,
     ...(clubId ? { clubId } : {}),
     ...(q
       ? {
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         memberships: {
-          where: { status: "ACTIVE" },
+          where: { status: "ACTIVE", endDate: { gte: new Date() } },
           include: { plan: { select: { name: true } } },
           take: 1,
           orderBy: { createdAt: "desc" },
@@ -71,30 +73,25 @@ export async function POST(req: NextRequest) {
     const { name, email, phone } = parsed.data;
     const clubId = session.user.clubId;
 
-    // Check for duplicate email
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
+    // Feature gate: enforce player limit based on subscription
+    const currentCount = await prisma.user.count({
+      where: { role: "USER", deletedAt: null, ...(clubId ? { clubId } : {}) },
+    });
+    if (!canAddPlayer(currentCount, session.user.subscriptionStatus ?? null)) {
+      return NextResponse.json(
+        { error: "Player limit reached for your current plan. Please upgrade to add more players." },
+        { status: 403 }
+      );
     }
 
-    const rawPassword = randomBytes(6).toString("hex"); // 12-char hex temp password
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-    const player = await prisma.user.create({
-      data: {
-        name,
-        email,
-        phone: phone ?? null,
-        password: hashedPassword,
-        role: "USER",
-        emailVerified: new Date(),
-        ...(clubId ? { clubId } : {}),
-      },
-    });
-
-    return NextResponse.json({ player, tempPassword: rawPassword }, { status: 201 });
-  } catch (error) {
-    console.error("Create player error:", error);
+    const result = await createPlayer({ name, email, phone, clubId: clubId ?? null });
+    return NextResponse.json(result, { status: 201 });
+  } catch (error: unknown) {
+    const err = error as { code?: string };
+    if (err.code === "DUPLICATE_EMAIL") {
+      return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
+    }
+    logger.error("Create player error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

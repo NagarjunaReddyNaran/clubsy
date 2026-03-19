@@ -15,7 +15,7 @@ import { formatDate, getMembershipStatusColor } from "@/lib/utils";
 import { ExportButton } from "@/components/admin/export-button";
 import { Users, Upload, Plus, Pencil } from "lucide-react";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default async function AdminPlayersPage({
   searchParams,
@@ -60,7 +60,7 @@ export default async function AdminPlayersPage({
       where,
       include: {
         memberships: {
-          where: { status: "ACTIVE" },
+          where: { status: "ACTIVE", endDate: { gte: new Date() } },
           include: { plan: { select: { name: true } } },
           take: 1,
           orderBy: { createdAt: "desc" },

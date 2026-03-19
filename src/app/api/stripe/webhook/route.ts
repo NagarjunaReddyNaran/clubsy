@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import type Stripe from "stripe";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   if (!stripe) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
-    console.error("Webhook signature error:", err);
+    logger.error("Webhook signature error", { error: err });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error("Webhook handler error:", err);
+    logger.error("Webhook handler error", { error: err });
   }
 
   return NextResponse.json({ received: true });

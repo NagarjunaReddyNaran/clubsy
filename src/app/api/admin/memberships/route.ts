@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createAuditLog } from "@/lib/audit";
-import { formatDateForExport } from "@/lib/export";
 import { CreateMembershipSchema } from "@/lib/validations";
+import { createMembership } from "@/lib/services/membership.service";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   const session = await auth();
@@ -39,64 +39,26 @@ export async function POST(req: NextRequest) {
     }
 
     const { userId, planId, startDate, paymentMethod, paymentReference, notes } = parsed.data;
-
-    const plan = await prisma.plan.findUnique({ where: { id: planId } });
-    if (!plan) {
-      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(startDate);
-    end.setDate(end.getDate() + plan.duration);
-
     const clubId = session.user.clubId ?? null;
 
-    const membership = await prisma.membership.create({
-      data: {
-        userId,
-        planId,
-        clubId,
-        status: "ACTIVE",
-        startDate: start,
-        endDate: end,
-        notes: notes || null,
-      },
-    });
-
-    await prisma.payment.create({
-      data: {
-        userId,
-        membershipId: membership.id,
-        amount: plan.price,
-        currency: plan.currency,
-        status: "COMPLETED",
-        method: paymentMethod || "cash",
-        reference: paymentReference || null,
-        paidAt: new Date(),
-      },
-    });
-
-    // Notify the player
-    await prisma.notification.create({
-      data: {
-        userId,
-        title: "Membership Activated",
-        message: `Your ${plan.name} membership is active until ${formatDateForExport(end)}.`,
-        type: "membership",
-      },
-    });
-
-    await createAuditLog({
-      userId: session.user.id,
-      action: "MEMBERSHIP_CREATED",
-      entityType: "membership",
-      entityId: membership.id,
-      details: `Created ${plan.name} for user ${userId}`,
+    const membership = await createMembership({
+      userId,
+      planId,
+      clubId,
+      startDate,
+      paymentMethod,
+      paymentReference,
+      notes,
+      adminUserId: session.user.id,
     });
 
     return NextResponse.json(membership, { status: 201 });
-  } catch (error) {
-    console.error("Create membership error:", error);
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === "PLAN_NOT_FOUND") {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+    logger.error("Create membership error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PatchAnnouncementSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   _req: NextRequest,
@@ -44,7 +45,7 @@ export async function PATCH(
     });
     return NextResponse.json(announcement);
   } catch (error) {
-    console.error("Update announcement error:", error);
+    logger.error("Update announcement error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -64,7 +65,7 @@ export async function DELETE(
     await prisma.announcement.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete announcement error:", error);
+    logger.error("Delete announcement error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

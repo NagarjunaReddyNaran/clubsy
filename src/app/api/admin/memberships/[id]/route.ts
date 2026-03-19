@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PatchMembershipSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   _req: NextRequest,
@@ -58,7 +59,7 @@ export async function PATCH(
 
     return NextResponse.json(membership);
   } catch (error) {
-    console.error("Update membership error:", error);
+    logger.error("Update membership error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

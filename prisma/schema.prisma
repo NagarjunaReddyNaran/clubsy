@@ -89,6 +89,7 @@ model User {
   role          Role      @default(USER)
   currency      String    @default("CAD")
   clubId        String?
+  deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -102,6 +103,7 @@ model User {
   club              Club?              @relation("ClubMembers", fields: [clubId], references: [id])
   ownedClub         Club?              @relation("ClubAdmin")
 
+  @@index([clubId, role])
   @@map("users")
 }
 
@@ -184,6 +186,9 @@ model Membership {
   payments          Payment[]
   extensionRequests ExtensionRequest[]
 
+  @@index([clubId, status])
+  @@index([status, endDate])
+  @@index([userId])
   @@map("memberships")
 }
 
@@ -204,6 +209,10 @@ model Payment {
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   membership Membership @relation(fields: [membershipId], references: [id])
 
+  @@index([membershipId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
   @@map("payments")
 }
 

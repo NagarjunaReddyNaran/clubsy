@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { detectCurrencyFromLocale } from "@/lib/detect-currency";
 import { rateLimit } from "@/lib/rate-limit";
 import { RegisterAdminSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const ip =
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-real-ip") ??
     "unknown";
 
-  const rl = rateLimit(ip, 5, 60_000);
+  const rl = await rateLimit(ip, 5, 60_000);
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Admin registration error:", error);
+    logger.error("Admin registration error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UpdateProfileSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   const session = await auth();
@@ -45,7 +46,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Update profile error:", error);
+    logger.error("Update profile error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

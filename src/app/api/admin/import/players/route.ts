@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
+import { logger } from "@/lib/logger";
 
 interface ImportRow {
   name?: string;
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Import error:", error);
+    logger.error("Import error", { error });
     return NextResponse.json({ error: "Import failed" }, { status: 500 });
   }
 }

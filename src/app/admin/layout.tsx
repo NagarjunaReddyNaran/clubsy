@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/layout/navbar";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { CurrencyProvider } from "@/context/currency-context";
 import { SubscriptionBanner } from "@/components/layout/subscription-banner";
 import { getDaysUntilTrialEnd } from "@/lib/subscription";
@@ -45,7 +46,7 @@ export default async function AdminLayout({
             clubLogoUrl={club?.logoUrl ?? null}
           />
         </header>
-        <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 ${showBanner ? "pt-28" : "pt-20"}`}>
+        <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8 ${showBanner ? "pt-28" : "pt-20"}`}>
           {!club ? (
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center space-y-4">
@@ -57,6 +58,7 @@ export default async function AdminLayout({
             </div>
           ) : children}
         </main>
+        <BottomNav role="ADMIN" />
       </div>
     </CurrencyProvider>
   );

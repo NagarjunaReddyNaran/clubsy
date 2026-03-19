@@ -10,7 +10,7 @@ import { Bell } from "lucide-react";
 import { MarkReadButton } from "@/components/dashboard/mark-read-button";
 import { MarkOneReadButton } from "@/components/dashboard/mark-one-read-button";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 export default async function NotificationsPage({
   searchParams,

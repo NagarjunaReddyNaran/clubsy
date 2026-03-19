@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SubscribeSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(membership, { status: 201 });
   } catch (error) {
-    console.error("Subscribe error:", error);
+    logger.error("Subscribe error", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
