@@ -25,6 +25,7 @@ import {
   Zap,
   MoreHorizontal,
   Building2,
+  MessageSquare,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -53,6 +54,7 @@ const adminSecondaryItems = [
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/import", label: "Import", icon: Upload },
   { href: "/admin/audit", label: "Audit", icon: ShieldCheck },
+  { href: "/admin/contact", label: "Contact", icon: MessageSquare },
 ];
 
 const adminNavItems = [...adminPrimaryItems, ...adminSecondaryItems];
@@ -62,7 +64,6 @@ const userNavItems = [
   { href: "/dashboard/plans", label: "Plans", icon: Package },
   { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
 ];
 
 export function Navbar({ user, unreadCount = 0, clubName, clubLogoUrl }: NavbarProps) {

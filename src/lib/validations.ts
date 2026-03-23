@@ -81,6 +81,13 @@ export const UpdatePlayerSchema = z.object({
   phone: z.string().optional().nullable(),
 });
 
+export const ContactSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+  email: z.string().email("Invalid email address"),
+  subject: z.enum(["general", "support", "billing"]).default("general"),
+  message: z.string().min(10, "Message must be at least 10 characters").max(2000),
+});
+
 export const JoinClubSchema = z.object({
   inviteCode: z.string().min(4),
   name: z.string().min(1).max(100),

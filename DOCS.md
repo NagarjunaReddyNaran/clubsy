@@ -732,11 +732,15 @@ Create a Stripe Customer Portal session for the authenticated admin to manage or
 
 ```
 PUBLIC
-  /              Landing page
+  /              Landing / marketing page (redirects to app if authenticated)
   /login         Sign in
   /register      Sign up (via invite link)
   /join/[code]   Join club with invite code
-  /start         Start/choose path
+  /start         Admin registration + pitch
+  /contact       Contact form (stored in DB + email notification)
+  /privacy       Privacy Policy
+  /terms         Terms of Service
+  /disclaimer    Disclaimer
 
 ONBOARDING (admin only, no club yet)
   /onboarding    Create club wizard
@@ -761,6 +765,7 @@ ADMIN (requires ADMIN role + club)
   /admin/audit          Audit log
   /admin/billing        Subscription management
   /admin/settings       Club settings
+  /admin/contact        Contact form submissions
 
 PLAYER (requires authentication + club)
   /dashboard            Member home
@@ -1265,6 +1270,7 @@ When any of the following changes, update the corresponding section:
 | 1.0.0 | 2026-03-18 | Initial documentation — full system coverage |
 | 1.1.0 | 2026-03-21 | Stripe billing: invoice.payment_succeeded webhook, Customer Portal route, Manage subscription UI |
 | 1.2.0 | 2026-03-22 | Email delivery: SMTP wired into Inngest functions and membership service; member Stripe payments via POST /api/memberships/payment; Pay online vs Pay at counter on plans page |
+| 1.3.0 | 2026-03-22 | Public pages: marketing landing page, /contact form (DB + email), /privacy, /terms, /disclaimer; Footer component; admin contact submissions view at /admin/contact |
 
 ### How to Detect Drift
 

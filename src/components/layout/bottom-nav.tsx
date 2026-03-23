@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Package, CreditCard, Bell, UserCircle, Users, FileText } from "lucide-react";
+import { LayoutDashboard, Package, CreditCard, Bell, Users, FileText } from "lucide-react";
 
 interface BottomNavProps {
   role: "ADMIN" | "USER";
@@ -15,7 +15,6 @@ const userTabs = [
   { href: "/dashboard/plans", label: "Plans", icon: Package },
   { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
   { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
-  { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
 ];
 
 const adminTabs = [
