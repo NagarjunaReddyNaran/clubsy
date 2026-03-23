@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "./notification.service";
 import { formatDateForExport } from "@/lib/export";
+import { sendEmail, getMembershipApprovedEmail, getExtensionReviewedEmail } from "@/lib/email";
 
 interface CreateMembershipInput {
   userId: string;
@@ -52,6 +53,15 @@ export async function createMembership(input: CreateMembershipInput) {
     message: `Your ${plan.name} membership is active until ${formatDateForExport(end)}.`,
     type: "membership",
   });
+
+  const member = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  if (member?.email) {
+    await sendEmail({
+      to: member.email,
+      subject: `Your ${plan.name} membership is now active`,
+      html: getMembershipApprovedEmail(member.name ?? "Member", plan.name, formatDateForExport(end)),
+    });
+  }
 
   await createAuditLog({
     userId: adminUserId,
@@ -114,7 +124,7 @@ export async function reviewExtensionRequest(input: ApproveExtensionInput) {
 
   const extensionRequest = await prisma.extensionRequest.findUnique({
     where: { id: extensionRequestId },
-    include: { membership: true, user: { select: { name: true } } },
+    include: { membership: true, user: { select: { name: true, email: true } } },
   });
 
   if (!extensionRequest) throw Object.assign(new Error("Request not found"), { code: "NOT_FOUND" });
@@ -147,6 +157,19 @@ export async function reviewExtensionRequest(input: ApproveExtensionInput) {
       : `Your request for a ${extensionRequest.days}-day extension was not approved.${reviewNote ? ` Reason: ${reviewNote}` : ""}`,
     type: "extension",
   });
+
+  if (extensionRequest.user.email) {
+    await sendEmail({
+      to: extensionRequest.user.email,
+      subject: approved ? "Your extension request has been approved" : "Update on your extension request",
+      html: getExtensionReviewedEmail(
+        extensionRequest.user.name ?? "Member",
+        approved,
+        extensionRequest.days,
+        reviewNote
+      ),
+    });
+  }
 
   await createAuditLog({
     userId: adminUserId,

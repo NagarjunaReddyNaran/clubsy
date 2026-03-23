@@ -20,9 +20,10 @@ interface Plan {
 interface PlansGridProps {
   plans: Plan[];
   activePlanId: string | null;
+  stripeConfigured: boolean;
 }
 
-export function PlansGrid({ plans, activePlanId }: PlansGridProps) {
+export function PlansGrid({ plans, activePlanId, stripeConfigured }: PlansGridProps) {
   const { format } = useCurrency();
 
   if (plans.length === 0) {
@@ -87,6 +88,7 @@ export function PlansGrid({ plans, activePlanId }: PlansGridProps) {
                   currency={plan.currency as CurrencyCode}
                   isCurrentPlan={isCurrentPlan}
                   hasActiveMembership={!!activePlanId}
+                  stripeConfigured={stripeConfigured}
                 />
               </div>
             </CardContent>

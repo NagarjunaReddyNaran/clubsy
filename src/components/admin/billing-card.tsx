@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { STRIPE_PLANS } from "@/lib/stripe";
 import { getDaysUntilTrialEnd } from "@/lib/subscription";
-import { CheckCircle2, Zap } from "lucide-react";
+import { CheckCircle2, Zap, ExternalLink } from "lucide-react";
 
 interface BillingCardProps {
   subscriptionStatus: string;
   trialEndsAt: string | null;
   currentPeriodEnd: Date | null;
   stripeConfigured: boolean;
+  hasStripeCustomer: boolean;
 }
 
 export function BillingCard({
@@ -20,6 +21,7 @@ export function BillingCard({
   trialEndsAt,
   currentPeriodEnd,
   stripeConfigured,
+  hasStripeCustomer,
 }: BillingCardProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const daysLeft = getDaysUntilTrialEnd(trialEndsAt);
@@ -37,6 +39,21 @@ export function BillingCard({
         window.location.href = data.url;
       } else {
         alert(data.error || "Failed to start checkout");
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function openPortal() {
+    setLoading("portal");
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to open billing portal");
       }
     } finally {
       setLoading(null);
@@ -86,6 +103,24 @@ export function BillingCard({
           )}
         </CardContent>
       </Card>
+
+      {/* Active subscription management */}
+      {subscriptionStatus === "ACTIVE" && hasStripeCustomer && (
+        <Card>
+          <CardContent className="py-4 flex items-center justify-between">
+            <p className="text-sm text-gray-600">Need to change or cancel your plan?</p>
+            <Button
+              variant="outline"
+              onClick={openPortal}
+              loading={loading === "portal"}
+              disabled={loading !== null}
+            >
+              <ExternalLink className="w-4 h-4" />
+              Manage subscription
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pricing plans */}
       {subscriptionStatus !== "ACTIVE" && (

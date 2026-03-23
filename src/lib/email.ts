@@ -1,14 +1,23 @@
 import nodemailer from "nodemailer";
+import { logger } from "./logger";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Lazy singleton — avoids connecting at module load time when SMTP isn't configured
+let _transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (_transporter) return _transporter;
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  _transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: parseInt(SMTP_PORT ?? "587"),
+    secure: parseInt(SMTP_PORT ?? "587") === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+  return _transporter;
+}
+
+const FROM = process.env.SMTP_FROM ?? "Clubsy <noreply@clubsy.app>";
 
 interface EmailOptions {
   to: string;
@@ -17,21 +26,17 @@ interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
-  if (process.env.NODE_ENV === "development" && !process.env.SMTP_USER) {
-    console.log("[EMAIL MOCK]", { to, subject });
-    return { success: true, mock: true };
+  const transporter = getTransporter();
+  if (!transporter) {
+    logger.warn("Email skipped — SMTP not configured", { to, subject });
+    return { success: false, reason: "smtp_not_configured" };
   }
-
   try {
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || "Clubsy <noreply@clubsy.app>",
-      to,
-      subject,
-      html,
-    });
+    const info = await transporter.sendMail({ from: FROM, to, subject, html });
+    logger.info("Email sent", { to, subject, messageId: info.messageId });
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Email send error:", error);
+    logger.error("Email send failed", { error, to, subject });
     return { success: false, error };
   }
 }

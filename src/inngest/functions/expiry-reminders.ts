@@ -1,9 +1,10 @@
 import { inngest } from "../client";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, getMembershipExpiryReminderEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
 /**
- * Nightly cron: send a reminder notification to members whose membership
+ * Nightly cron: send a reminder notification + email to members whose membership
  * expires within the next 7 days.
  * Scheduled at 08:00 UTC daily.
  */
@@ -20,7 +21,10 @@ export const expiryReminders = inngest.createFunction(
           status: "ACTIVE",
           endDate: { gte: now, lte: in7Days },
         },
-        include: { plan: { select: { name: true } } },
+        include: {
+          plan: { select: { name: true } },
+          user: { select: { name: true, email: true } },
+        },
       });
     });
 
@@ -29,6 +33,12 @@ export const expiryReminders = inngest.createFunction(
         const daysLeft = Math.ceil(
           (new Date(m.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
         );
+        const formattedDate = new Date(m.endDate).toLocaleDateString("en-CA", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
         await prisma.notification.create({
           data: {
             userId: m.userId,
@@ -37,6 +47,18 @@ export const expiryReminders = inngest.createFunction(
             type: "expiry_reminder",
           },
         });
+
+        if (m.user.email) {
+          await sendEmail({
+            to: m.user.email,
+            subject: `Your membership expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
+            html: getMembershipExpiryReminderEmail(
+              m.user.name ?? "Member",
+              m.plan.name,
+              daysLeft
+            ),
+          });
+        }
       }
       logger.info("Expiry reminders sent", { count: memberships.length });
     });

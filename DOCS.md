@@ -718,7 +718,11 @@ Create a Stripe checkout session for admin billing.
 **Response:** `{ url: "https://checkout.stripe.com/..." }`
 
 #### `POST /api/stripe/webhook`
-Handle Stripe events: `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted`.
+Handle Stripe events: `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+#### `POST /api/stripe/portal`
+Create a Stripe Customer Portal session for the authenticated admin to manage or cancel their active subscription.
+**Response:** `{ url: "https://billing.stripe.com/..." }`
 
 ---
 
@@ -1259,6 +1263,8 @@ When any of the following changes, update the corresponding section:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2026-03-18 | Initial documentation — full system coverage |
+| 1.1.0 | 2026-03-21 | Stripe billing: invoice.payment_succeeded webhook, Customer Portal route, Manage subscription UI |
+| 1.2.0 | 2026-03-22 | Email delivery: SMTP wired into Inngest functions and membership service; member Stripe payments via POST /api/memberships/payment; Pay online vs Pay at counter on plans page |
 
 ### How to Detect Drift
 

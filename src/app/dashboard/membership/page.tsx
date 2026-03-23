@@ -13,9 +13,15 @@ import {
 import { formatCurrency, type CurrencyCode } from "@/lib/currency";
 import { Package, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
-export default async function MembershipPage() {
+export default async function MembershipPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const { payment } = await searchParams;
 
   const memberships = await prisma.membership.findMany({
     where: { userId: session.user.id },
@@ -39,6 +45,13 @@ export default async function MembershipPage() {
         <h1 className="text-2xl font-bold text-gray-900">My Membership</h1>
         <p className="text-gray-500 mt-1">View and manage your membership details</p>
       </div>
+
+      {payment === "success" && (
+        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800">
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm font-medium">Payment successful! Your membership is now active.</p>
+        </div>
+      )}
 
       {/* Active Membership */}
       {activeMembership ? (

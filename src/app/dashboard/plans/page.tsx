@@ -26,6 +26,8 @@ export default async function PlansPage() {
     price: Number(p.price),
   }));
 
+  const stripeConfigured = !!process.env.STRIPE_SECRET_KEY;
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,6 +37,7 @@ export default async function PlansPage() {
       <PlansGrid
         plans={serializedPlans}
         activePlanId={activeMembership?.planId ?? null}
+        stripeConfigured={stripeConfigured}
       />
     </div>
   );

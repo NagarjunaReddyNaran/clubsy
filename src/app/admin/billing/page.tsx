@@ -20,7 +20,7 @@ export default async function BillingPage({
       subscriptionStatus: true,
       trialEndsAt: true,
       currentPeriodEnd: true,
-      stripeSubscriptionId: true,
+      stripeCustomerId: true,
     },
   });
 
@@ -67,6 +67,7 @@ export default async function BillingPage({
         trialEndsAt={club.trialEndsAt.toISOString()}
         currentPeriodEnd={club.currentPeriodEnd}
         stripeConfigured={stripeConfigured}
+        hasStripeCustomer={!!club.stripeCustomerId}
       />
     </div>
   );
