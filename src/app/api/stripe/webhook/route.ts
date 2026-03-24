@@ -6,6 +6,25 @@ import { logger } from "@/lib/logger";
 import { sendEmail, getMembershipApprovedEmail } from "@/lib/email";
 import { formatDateForExport } from "@/lib/export";
 
+/**
+ * In Stripe API 2026-02-25.clover, current_period_end moved from the
+ * Subscription root to each SubscriptionItem. This helper handles both.
+ */
+function getSubscriptionPeriodEnd(sub: Stripe.Subscription): number {
+  // New API version: period end is on the first subscription item
+  const itemPeriodEnd = sub.items?.data?.[0]?.current_period_end;
+  if (typeof itemPeriodEnd === "number" && itemPeriodEnd > 0) return itemPeriodEnd;
+
+  // Legacy fallback: period end was on the subscription root (pre-2026)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rootPeriodEnd = (sub as any).current_period_end;
+  if (typeof rootPeriodEnd === "number" && rootPeriodEnd > 0) return rootPeriodEnd;
+
+  // Last resort: 30 days from now
+  logger.error("Could not determine subscription period end", { subId: sub.id, sub });
+  return Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+}
+
 export async function POST(req: NextRequest) {
   if (!stripe) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
@@ -106,7 +125,7 @@ export async function POST(req: NextRequest) {
         const clubId = session.metadata?.clubId;
         if (clubId && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-          const periodEnd = (sub as unknown as { current_period_end: number }).current_period_end;
+          const periodEnd = getSubscriptionPeriodEnd(sub);
           await prisma.club.update({
             where: { id: clubId },
             data: {
@@ -120,7 +139,7 @@ export async function POST(req: NextRequest) {
       }
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        const periodEnd = (sub as unknown as { current_period_end: number }).current_period_end;
+        const periodEnd = getSubscriptionPeriodEnd(sub);
         const club = await prisma.club.findFirst({ where: { stripeSubscriptionId: sub.id } });
         if (club) {
           await prisma.club.update({
@@ -146,10 +165,11 @@ export async function POST(req: NextRequest) {
       }
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        const subId = (invoice as unknown as { subscription: string }).subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subId = (invoice as any).subscription as string | null;
         if (!subId) break;
         const sub = await stripe.subscriptions.retrieve(subId);
-        const periodEnd = (sub as unknown as { current_period_end: number }).current_period_end;
+        const periodEnd = getSubscriptionPeriodEnd(sub);
         const club = await prisma.club.findFirst({ where: { stripeSubscriptionId: subId } });
         if (club) {
           await prisma.club.update({
@@ -165,6 +185,8 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     logger.error("Webhook handler error", { error: err });
+    // Return 500 so Stripe retries the webhook instead of silently dropping it
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
