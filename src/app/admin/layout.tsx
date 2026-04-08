@@ -20,7 +20,14 @@ export default async function AdminLayout({
   // If admin has no club, send to onboarding
   const club = await prisma.club.findUnique({
     where: { adminId: session.user.id },
-    select: { id: true, name: true, logoUrl: true, subscriptionStatus: true, trialEndsAt: true },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true,
+      subscriptionStatus: true,
+      subscriptionPlan: true,
+      trialEndsAt: true,
+    },
   });
 
   const daysLeft = club ? getDaysUntilTrialEnd(club.trialEndsAt) : 0;
@@ -44,6 +51,7 @@ export default async function AdminLayout({
             user={session.user}
             clubName={club?.name ?? null}
             clubLogoUrl={club?.logoUrl ?? null}
+            isPremium={club?.subscriptionPlan === "PREMIUM"}
           />
         </header>
         <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8 ${showBanner ? "pt-28" : "pt-20"}`}>
@@ -58,7 +66,7 @@ export default async function AdminLayout({
             </div>
           ) : children}
         </main>
-        <BottomNav role="ADMIN" />
+        <BottomNav role="ADMIN" isPremium={club?.subscriptionPlan === "PREMIUM"} />
       </div>
     </CurrencyProvider>
   );

@@ -1,6 +1,6 @@
 # Clubsy — Complete Technical Documentation
 
-> **Version:** 1.0.0 | **Last Updated:** 2026-03-18 | **Stack:** Next.js 16 · Prisma 6 · PostgreSQL · NextAuth v5
+> **Version:** 2.0.0 | **Last Updated:** 2026-04-08 | **Stack:** Next.js 16 · Prisma 6 · PostgreSQL · NextAuth v5
 
 ---
 
@@ -236,16 +236,22 @@ Club ──── User (admin, 1:1)
      ──── Plan[] (1:N)
      ──── Membership[] (1:N)
      ──── Announcement[] (1:N)
+     ──── Slot[] (1:N)           ← PREMIUM only
 
 User ──── Membership[] (1:N)
      ──── Payment[] (1:N)
      ──── ExtensionRequest[] (1:N)
      ──── Notification[] (1:N)
      ──── AuditLog[] (1:N)
+     ──── Booking[] (1:N)        ← PREMIUM only
 
 Membership ──── Plan (N:1)
            ──── Payment[] (1:N)
            ──── ExtensionRequest[] (1:N)
+
+Slot ──── Booking[] (1:N)        ← PREMIUM only
+Booking ──── User (N:1)
+        ──── Slot (N:1)
 ```
 
 ### Enums
@@ -256,11 +262,14 @@ enum MembershipStatus    { ACTIVE  EXPIRED  PENDING  CANCELLED }
 enum PaymentStatus       { PENDING  COMPLETED  FAILED  REFUNDED }
 enum ExtensionStatus     { PENDING  APPROVED  REJECTED }
 enum SubscriptionStatus  { TRIAL  ACTIVE  EXPIRED  CANCELLED }
+enum SubscriptionPlan    { BASIC  PREMIUM }        // BASIC = membership only; PREMIUM = + slot booking
+enum BookingStatus       { CONFIRMED  CANCELLED }
 enum AuditAction         {
   MEMBERSHIP_CREATED  MEMBERSHIP_CANCELLED  MEMBERSHIP_EXTENDED
   PAYMENT_RECORDED    PLAN_CREATED          PLAN_UPDATED
   USER_REGISTERED     EXTENSION_APPROVED    EXTENSION_REJECTED
   DATA_EXPORTED       DATA_IMPORTED         ANNOUNCEMENT_CREATED
+  SLOT_CREATED        BOOKING_CREATED       BOOKING_CANCELLED
 }
 ```
 
@@ -277,6 +286,7 @@ enum AuditAction         {
 | inviteCode | String | Unique 8-char code for joining |
 | adminId | String | FK → User (unique, 1:1) |
 | subscriptionStatus | SubscriptionStatus | Default: TRIAL |
+| subscriptionPlan | SubscriptionPlan | Default: BASIC; PREMIUM unlocks slot booking |
 | trialEndsAt | DateTime? | Trial expiry |
 | stripeCustomerId | String? | Stripe customer ID |
 | stripeSubscriptionId | String? | Active Stripe subscription |
@@ -635,6 +645,64 @@ Review an extension request.
 **Body:** `{ "status": "APPROVED", "reviewNote": "Approved for medical leave" }`
 - On APPROVED: extends the membership's `endDate` by `request.days`, sends email notification.
 - On REJECTED: sends rejection email.
+
+---
+
+### Admin — Slots (PREMIUM clubs only)
+
+#### `GET /api/admin/slots`
+List all configured slots for the club.
+**Premium gate:** 403 if `club.subscriptionPlan !== "PREMIUM"`
+
+#### `POST /api/admin/slots`
+Create a time slot.
+**Body:** `{ "name": "Morning", "startTime": "09:00", "endTime": "10:00", "capacity": 8, "isActive": true }`
+
+#### `PATCH /api/admin/slots/[id]`
+Update a slot (partial update, all fields optional).
+
+#### `DELETE /api/admin/slots/[id]`
+Delete a slot. Returns 409 if slot has upcoming confirmed bookings.
+
+---
+
+### Admin — Bookings (PREMIUM clubs only)
+
+#### `GET /api/admin/bookings`
+List all bookings for the club.
+**Query params:** `date` (YYYY-MM-DD), `slotId`, `status` (CONFIRMED|CANCELLED)
+
+---
+
+### Player — Slots
+
+#### `GET /api/slots?date=YYYY-MM-DD`
+Returns active slots for the player's club on a given date, with:
+- `bookedCount` — how many confirmed bookings for that slot+date
+- `available` — remaining spots
+- `alreadyBooked` — whether the current user has already booked this slot
+
+---
+
+### Player — Bookings
+
+#### `GET /api/bookings`
+Returns the current user's upcoming confirmed bookings. Pass `?all=true` for full history.
+
+#### `POST /api/bookings`
+Books a slot for the current player.
+**Body:** `{ "slotId": "clxxx", "date": "2026-04-10" }`
+**Guards:**
+- Date must be today or future
+- Club must be PREMIUM
+- Player must have ACTIVE membership with `plan.slotAccess = true`
+- Slot must belong to the player's club and be active
+- Slot must not be full (atomic transaction check)
+- No duplicate booking per user/slot/date
+- Weekly and active booking limits enforced if set on plan
+
+#### `DELETE /api/bookings/[id]`
+Cancels a booking. Players can cancel their own future bookings; admins can cancel any in their club.
 
 ---
 
@@ -1271,6 +1339,7 @@ When any of the following changes, update the corresponding section:
 | 1.1.0 | 2026-03-21 | Stripe billing: invoice.payment_succeeded webhook, Customer Portal route, Manage subscription UI |
 | 1.2.0 | 2026-03-22 | Email delivery: SMTP wired into Inngest functions and membership service; member Stripe payments via POST /api/memberships/payment; Pay online vs Pay at counter on plans page |
 | 1.3.0 | 2026-03-22 | Public pages: marketing landing page, /contact form (DB + email), /privacy, /terms, /disclaimer; Footer component; admin contact submissions view at /admin/contact |
+| 2.0.0 | 2026-04-08 | Slot-based booking system (PREMIUM only): SubscriptionPlan enum on Club, Slot + Booking models, admin slot management, player book/bookings pages, feature gating via canUseBooking(), plan slotAccess fields, 6 new API routes |
 
 ### How to Detect Drift
 

@@ -31,8 +31,19 @@ export async function PUT(
   const { id } = await params;
 
   try {
-    const { name, description, duration, price, currency, maxSessions, features, isActive } =
-      await req.json();
+    const {
+      name,
+      description,
+      duration,
+      price,
+      currency,
+      maxSessions,
+      features,
+      isActive,
+      slotAccess,
+      maxBookingsPerWeek,
+      maxActiveBookings,
+    } = await req.json();
 
     const plan = await prisma.plan.update({
       where: { id },
@@ -45,6 +56,9 @@ export async function PUT(
         maxSessions: maxSessions || null,
         features: features || [],
         isActive: isActive ?? true,
+        slotAccess: slotAccess ?? false,
+        maxBookingsPerWeek: maxBookingsPerWeek || null,
+        maxActiveBookings: maxActiveBookings || null,
       },
     });
 

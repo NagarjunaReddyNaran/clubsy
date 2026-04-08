@@ -45,12 +45,25 @@ enum AuditAction {
   DATA_EXPORTED
   DATA_IMPORTED
   ANNOUNCEMENT_CREATED
+  SLOT_CREATED
+  BOOKING_CREATED
+  BOOKING_CANCELLED
 }
 
 enum SubscriptionStatus {
   TRIAL
   ACTIVE
   EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PREMIUM
+}
+
+enum BookingStatus {
+  CONFIRMED
   CANCELLED
 }
 
@@ -62,6 +75,7 @@ model Club {
   inviteCode           String             @unique
   adminId              String             @unique
   subscriptionStatus   SubscriptionStatus @default(TRIAL)
+  subscriptionPlan     SubscriptionPlan   @default(BASIC)
   trialEndsAt          DateTime
   stripeCustomerId     String?
   stripeSubscriptionId String?
@@ -74,6 +88,7 @@ model Club {
   plans         Plan[]
   memberships   Membership[]
   announcements Announcement[]
+  slots         Slot[]
 
   @@map("clubs")
 }
@@ -100,6 +115,7 @@ model User {
   extensionRequests ExtensionRequest[]
   notifications     Notification[]
   auditLogs         AuditLog[]
+  bookings          Booking[]
   club              Club?              @relation("ClubMembers", fields: [clubId], references: [id])
   ownedClub         Club?              @relation("ClubAdmin")
 
@@ -154,12 +170,15 @@ model Plan {
   duration    Int
   price       Decimal  @db.Decimal(10, 2)
   currency    String   @default("CAD")
-  maxSessions Int?
-  features    String[]
-  isActive    Boolean  @default(true)
-  clubId      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  maxSessions        Int?
+  features           String[]
+  isActive           Boolean  @default(true)
+  slotAccess         Boolean  @default(false)
+  maxBookingsPerWeek Int?
+  maxActiveBookings  Int?
+  clubId             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   memberships Membership[]
   club        Club?        @relation(fields: [clubId], references: [id])
@@ -289,4 +308,42 @@ model ContactSubmission {
   @@index([isRead])
   @@index([createdAt])
   @@map("contact_submissions")
+}
+
+// ── Booking System (PREMIUM clubs only) ─────────────────────────────────────
+
+model Slot {
+  id        String   @id @default(cuid())
+  name      String?
+  startTime String   // "09:00" 24-hour format
+  endTime   String   // "10:00" 24-hour format
+  capacity  Int      @default(8)
+  isActive  Boolean  @default(true)
+  clubId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club     Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([clubId])
+  @@map("slots")
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  userId    String
+  slotId    String
+  date      DateTime      @db.Date // date only — no time component stored
+  status    BookingStatus @default(CONFIRMED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot Slot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slotId, date]) // one booking per user per slot per day
+  @@index([slotId, date])
+  @@index([userId])
+  @@map("bookings")
 }

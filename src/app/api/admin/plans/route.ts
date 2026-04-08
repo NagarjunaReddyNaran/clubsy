@@ -33,7 +33,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, description, duration, price, currency, maxSessions, features, isActive } = parsed.data;
+    const {
+      name,
+      description,
+      duration,
+      price,
+      currency,
+      maxSessions,
+      features,
+      isActive,
+      slotAccess,
+      maxBookingsPerWeek,
+      maxActiveBookings,
+    } = parsed.data;
     const clubId = session.user.clubId ?? undefined;
 
     const plan = await prisma.plan.create({
@@ -46,6 +58,9 @@ export async function POST(req: NextRequest) {
         maxSessions: maxSessions ?? null,
         features,
         isActive,
+        slotAccess: slotAccess ?? false,
+        maxBookingsPerWeek: maxBookingsPerWeek ?? null,
+        maxActiveBookings: maxActiveBookings ?? null,
         clubId: clubId ?? null,
       },
     });

@@ -3,16 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Package, CreditCard, Bell, Users, FileText } from "lucide-react";
+import { LayoutDashboard, Package, CreditCard, Bell, Users, FileText, CalendarDays } from "lucide-react";
 
 interface BottomNavProps {
   role: "ADMIN" | "USER";
   unreadCount?: number;
+  isPremium?: boolean;
 }
 
-const userTabs = [
+const userTabsBase = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/plans", label: "Plans", icon: Package },
+  { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
+  { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
+];
+
+const userTabsPremium = [
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard/book", label: "Book", icon: CalendarDays },
   { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
   { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
 ];
@@ -25,8 +33,9 @@ const adminTabs = [
   { href: "/admin/plans", label: "Plans", icon: Package },
 ];
 
-export function BottomNav({ role, unreadCount = 0 }: BottomNavProps) {
+export function BottomNav({ role, unreadCount = 0, isPremium = false }: BottomNavProps) {
   const pathname = usePathname();
+  const userTabs = isPremium ? userTabsPremium : userTabsBase;
   const tabs = role === "ADMIN" ? adminTabs : userTabs;
 
   return (

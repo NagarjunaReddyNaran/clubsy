@@ -33,6 +33,7 @@ export const authConfig: NextAuthConfig = {
         session.user.clubId = token.clubId as string | null;
         session.user.clubName = token.clubName as string | null;
         session.user.subscriptionStatus = token.subscriptionStatus as string | null;
+        session.user.subscriptionPlan = token.subscriptionPlan as string | null;
         session.user.trialEndsAt = token.trialEndsAt as string | null;
       }
       return session;
@@ -98,15 +99,20 @@ async function loadClubIntoToken(
     token.clubId = club?.id ?? null;
     token.clubName = club?.name ?? null;
     token.subscriptionStatus = club?.subscriptionStatus ?? null;
+    token.subscriptionPlan = club?.subscriptionPlan ?? null;
     token.trialEndsAt = club?.trialEndsAt?.toISOString() ?? null;
   } else {
     const dbUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { clubId: true, club: { select: { name: true } } },
+      select: {
+        clubId: true,
+        club: { select: { name: true, subscriptionPlan: true } },
+      },
     });
     token.clubId = dbUser?.clubId ?? null;
     token.clubName = dbUser?.club?.name ?? null;
     token.subscriptionStatus = null;
+    token.subscriptionPlan = dbUser?.club?.subscriptionPlan ?? null;
     token.trialEndsAt = null;
   }
 }

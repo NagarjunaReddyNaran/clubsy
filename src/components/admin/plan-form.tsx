@@ -18,6 +18,9 @@ interface Plan {
   maxSessions: number | null;
   features: string[];
   isActive: boolean;
+  slotAccess?: boolean;
+  maxBookingsPerWeek?: number | null;
+  maxActiveBookings?: number | null;
 }
 
 interface PlanFormProps {
@@ -40,6 +43,9 @@ export function PlanForm({ plan }: PlanFormProps) {
     currency: plan?.currency || "CAD",
     maxSessions: plan?.maxSessions?.toString() || "",
     isActive: plan?.isActive ?? true,
+    slotAccess: plan?.slotAccess ?? false,
+    maxBookingsPerWeek: plan?.maxBookingsPerWeek?.toString() || "",
+    maxActiveBookings: plan?.maxActiveBookings?.toString() || "",
   });
 
   function handleChange(
@@ -75,6 +81,12 @@ export function PlanForm({ plan }: PlanFormProps) {
         duration: parseInt(formData.duration),
         price: parseFloat(formData.price),
         maxSessions: formData.maxSessions ? parseInt(formData.maxSessions) : null,
+        maxBookingsPerWeek: formData.maxBookingsPerWeek
+          ? parseInt(formData.maxBookingsPerWeek)
+          : null,
+        maxActiveBookings: formData.maxActiveBookings
+          ? parseInt(formData.maxActiveBookings)
+          : null,
         features: features.filter((f) => f.trim() !== ""),
       };
 
@@ -228,6 +240,48 @@ export function PlanForm({ plan }: PlanFormProps) {
                 Add feature
               </button>
             </div>
+          </div>
+
+          {/* Slot access toggle (PREMIUM clubs) */}
+          <div className="border border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="slotAccess"
+                checked={formData.slotAccess}
+                onChange={handleChange}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-700">Allow slot booking</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Members on this plan can book time slots (Premium clubs only)
+                </p>
+              </div>
+            </label>
+
+            {formData.slotAccess && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <Input
+                  name="maxBookingsPerWeek"
+                  label="Max bookings / week"
+                  type="number"
+                  min="1"
+                  value={formData.maxBookingsPerWeek}
+                  onChange={handleChange}
+                  placeholder="Unlimited"
+                />
+                <Input
+                  name="maxActiveBookings"
+                  label="Max active bookings"
+                  type="number"
+                  min="1"
+                  value={formData.maxActiveBookings}
+                  onChange={handleChange}
+                  placeholder="Unlimited"
+                />
+              </div>
+            )}
           </div>
 
           {/* Active toggle */}

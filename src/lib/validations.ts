@@ -16,6 +16,9 @@ export const CreatePlanSchema = z.object({
   maxSessions: z.coerce.number().int().positive().optional().nullable(),
   features: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
+  slotAccess: z.boolean().default(false),
+  maxBookingsPerWeek: z.coerce.number().int().positive().optional().nullable(),
+  maxActiveBookings: z.coerce.number().int().positive().optional().nullable(),
 });
 
 export const CreateMembershipSchema = z.object({
@@ -94,4 +97,27 @@ export const JoinClubSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   phone: z.string().optional(),
+});
+
+// ── Booking System ──────────────────────────────────────────────────────────
+
+export const CreateSlotSchema = z.object({
+  name: z.string().max(100).optional().nullable(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Must be HH:MM format"),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Must be HH:MM format"),
+  capacity: z.coerce.number().int().min(1).max(500).default(8),
+  isActive: z.boolean().default(true),
+});
+
+export const UpdateSlotSchema = CreateSlotSchema.partial();
+
+export const CreateBookingSchema = z.object({
+  slotId: z.string().cuid(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
 });

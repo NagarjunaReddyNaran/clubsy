@@ -21,24 +21,26 @@ export default async function DashboardLayout({
 
   const clubName = session.user.clubName ?? null;
 
-  // Fetch club logo if the user belongs to a club
-  const clubLogoUrl = session.user.clubId
+  // Fetch club data if the user belongs to a club
+  const clubData = session.user.clubId
     ? await prisma.club.findUnique({
         where: { id: session.user.clubId },
-        select: { logoUrl: true },
-      }).then((c) => c?.logoUrl ?? null)
+        select: { logoUrl: true, subscriptionPlan: true },
+      })
     : null;
+  const clubLogoUrl = clubData?.logoUrl ?? null;
+  const isPremium = clubData?.subscriptionPlan === "PREMIUM";
 
   return (
     <CurrencyProvider initialCurrency={(session.user.currency as CurrencyCode) ?? "CAD"}>
       <div className="min-h-screen bg-gray-50">
         <header className="fixed top-0 left-0 right-0 z-50">
-          <Navbar user={session.user} unreadCount={unreadCount} clubName={clubName} clubLogoUrl={clubLogoUrl} />
+          <Navbar user={session.user} unreadCount={unreadCount} clubName={clubName} clubLogoUrl={clubLogoUrl} isPremium={isPremium} />
         </header>
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 sm:pb-8">
           {session.user.clubId ? children : <NoClubScreen />}
         </main>
-        <BottomNav role="USER" unreadCount={unreadCount} />
+        <BottomNav role="USER" unreadCount={unreadCount} isPremium={isPremium} />
       </div>
     </CurrencyProvider>
   );

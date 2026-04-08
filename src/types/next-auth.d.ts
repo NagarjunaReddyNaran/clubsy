@@ -9,6 +9,7 @@ declare module "next-auth" {
       clubId: string | null;
       clubName: string | null;
       subscriptionStatus: string | null;
+      subscriptionPlan: string | null;
       trialEndsAt: string | null;
     } & DefaultSession["user"];
   }

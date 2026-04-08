@@ -126,10 +126,16 @@ export async function POST(req: NextRequest) {
         if (clubId && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           const periodEnd = getSubscriptionPeriodEnd(sub);
+
+          // Determine plan tier from Stripe price ID
+          const priceId = sub.items?.data?.[0]?.price?.id ?? "";
+          const isProPlan = priceId === process.env.STRIPE_PRO_PRICE_ID;
+
           await prisma.club.update({
             where: { id: clubId },
             data: {
               subscriptionStatus: "ACTIVE",
+              subscriptionPlan: isProPlan ? "PREMIUM" : "BASIC",
               stripeSubscriptionId: sub.id,
               currentPeriodEnd: new Date(periodEnd * 1000),
             },

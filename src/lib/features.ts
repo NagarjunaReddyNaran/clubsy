@@ -1,13 +1,13 @@
 /**
  * Feature gating based on subscription plan.
  *
- * TRIAL / STARTER: up to 50 players
- * PRO:             unlimited players
+ * TRIAL / STARTER: up to 50 players, BASIC features only
+ * PRO / PREMIUM:   unlimited players + slot booking system
  *
  * Extend this file as Stripe products and feature flags evolve.
  */
 
-import type { SubscriptionStatus } from "@prisma/client";
+import type { SubscriptionStatus, SubscriptionPlan } from "@prisma/client";
 
 const PLAYER_LIMITS: Record<string, number> = {
   TRIAL: 50,
@@ -27,4 +27,14 @@ export function canAddPlayer(
 ): boolean {
   const limit = getPlayerLimit(subscriptionStatus);
   return currentPlayerCount < limit;
+}
+
+/**
+ * Returns true if the club's subscription plan is PREMIUM.
+ * This gates the slot booking system.
+ */
+export function canUseBooking(
+  subscriptionPlan: SubscriptionPlan | string | null | undefined
+): boolean {
+  return subscriptionPlan === "PREMIUM";
 }

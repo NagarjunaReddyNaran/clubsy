@@ -26,6 +26,8 @@ import {
   MoreHorizontal,
   Building2,
   MessageSquare,
+  CalendarDays,
+  Clock,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -37,6 +39,7 @@ interface NavbarProps {
   unreadCount?: number;
   clubName?: string | null;
   clubLogoUrl?: string | null;
+  isPremium?: boolean;
 }
 
 // Primary admin items always visible in desktop nav
@@ -48,8 +51,8 @@ const adminPrimaryItems = [
   { href: "/admin/payments", label: "Payments", icon: FileText },
 ];
 
-// Secondary admin items shown in "More" dropdown on desktop
-const adminSecondaryItems = [
+// Secondary admin items — base (always shown)
+const adminSecondaryBase = [
   { href: "/admin/extensions", label: "Extensions", icon: ClipboardList },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/import", label: "Import", icon: Upload },
@@ -57,23 +60,42 @@ const adminSecondaryItems = [
   { href: "/admin/contact", label: "Contact", icon: MessageSquare },
 ];
 
-const adminNavItems = [...adminPrimaryItems, ...adminSecondaryItems];
+// Premium-only admin secondary items
+const adminSecondaryPremium = [
+  { href: "/admin/slots", label: "Slots", icon: Clock },
+  { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+];
 
-const userNavItems = [
+const userNavItemsBase = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/plans", label: "Plans", icon: Package },
   { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
 ];
 
-export function Navbar({ user, unreadCount = 0, clubName, clubLogoUrl }: NavbarProps) {
+// Premium-only user nav items
+const userNavItemsPremium = [
+  { href: "/dashboard/book", label: "Book", icon: CalendarDays },
+  { href: "/dashboard/bookings", label: "My Bookings", icon: Clock },
+];
+
+export function Navbar({ user, unreadCount = 0, clubName, clubLogoUrl, isPremium = false }: NavbarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isAdmin = user.role === "ADMIN";
-  const navItems = isAdmin ? adminNavItems : userNavItems;
+
+  // Build dynamic nav arrays based on plan
+  const adminSecondaryItems = isPremium
+    ? [...adminSecondaryBase, ...adminSecondaryPremium]
+    : adminSecondaryBase;
+  const userNavItems = isPremium
+    ? [...userNavItemsBase, ...userNavItemsPremium]
+    : userNavItemsBase;
+
+  const navItems = isAdmin ? [...adminPrimaryItems, ...adminSecondaryItems] : userNavItems;
   const primaryItems = isAdmin ? adminPrimaryItems : userNavItems;
   const secondaryItems = isAdmin ? adminSecondaryItems : [];
   const isSecondaryActive = secondaryItems.some((item) => pathname === item.href);
