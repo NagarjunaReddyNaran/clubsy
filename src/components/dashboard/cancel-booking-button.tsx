@@ -26,7 +26,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   if (confirm) {
     return (
       <div className="flex items-center gap-1">
-        <Button size="sm" variant="destructive" loading={loading} onClick={handleCancel}>
+        <Button size="sm" variant="danger" loading={loading} onClick={handleCancel}>
           Confirm
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setConfirm(false)}>
