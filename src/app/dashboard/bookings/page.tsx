@@ -121,7 +121,7 @@ export default async function MyBookingsPage() {
                     <span className="text-gray-300">·</span>
                     <span className="font-mono">{b.slot.startTime}–{b.slot.endTime}</span>
                   </div>
-                  <Badge variant={b.status === "CANCELLED" ? "destructive" : "default"}>
+                  <Badge variant={b.status === "CANCELLED" ? "danger" : "default"}>
                     {b.status === "CANCELLED" ? "Cancelled" : "Completed"}
                   </Badge>
                 </CardContent>
