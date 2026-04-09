@@ -116,7 +116,7 @@ export const CreateSlotSchema = z.object({
 export const UpdateSlotSchema = CreateSlotSchema.partial();
 
 export const CreateBookingSchema = z.object({
-  slotId: z.string().cuid(),
+  slotId: z.string().min(1),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
