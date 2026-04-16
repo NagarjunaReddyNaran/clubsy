@@ -87,8 +87,14 @@ export async function POST(req: NextRequest) {
                   currency: plan.currency,
                   status: "COMPLETED",
                   method: "stripe",
-                  reference: session.id,
+                  reference: session.payment_intent as string | undefined,
                   paidAt: new Date(),
+                  paymentSource: "ONLINE",
+                  stripeSessionId: session.id,
+                  stripePaymentIntentId: session.payment_intent as string | undefined,
+                  invoiceUrl: session.invoice
+                    ? (await stripe!.invoices.retrieve(session.invoice as string)).hosted_invoice_url ?? undefined
+                    : undefined,
                 },
               });
 

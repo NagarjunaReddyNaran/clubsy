@@ -11,6 +11,7 @@ import { ClearFiltersButton } from "@/components/ui/clear-filters-button";
 import { formatDate } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
 import { ExportButton } from "@/components/admin/export-button";
+import { SelectFilter } from "@/components/ui/select-filter";
 import { DollarSign, FileText } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -25,12 +26,12 @@ const statusColor: Record<string, "success" | "warning" | "danger" | "default"> 
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; q?: string; page?: string; status?: string; source?: string }>;
 }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const { from, to, q: rawQ, page: pageStr } = await searchParams;
+  const { from, to, q: rawQ, page: pageStr, status, source } = await searchParams;
   const query = rawQ?.trim() ?? "";
   const page = Math.max(1, parseInt(pageStr ?? "1"));
   const clubId = session.user.clubId;
@@ -56,8 +57,13 @@ export default async function AdminPaymentsPage({
       }
     : {};
 
+  const validStatuses = ["COMPLETED", "PENDING", "FAILED", "REFUNDED"];
+  const validSources = ["ONLINE", "OFFLINE"];
+  const statusFilter = status && validStatuses.includes(status) ? { status: status as "COMPLETED" | "PENDING" | "FAILED" | "REFUNDED" } : {};
+  const sourceFilter = source && validSources.includes(source) ? { paymentSource: source as "ONLINE" | "OFFLINE" } : {};
+
   const clubFilter = clubId ? { membership: { clubId } } : {};
-  const where = { ...dateFilter, ...searchFilter, ...clubFilter };
+  const where = { ...dateFilter, ...searchFilter, ...statusFilter, ...sourceFilter, ...clubFilter };
 
   const [payments, total, totalRevenue, monthRevenue] = await Promise.all([
     prisma.payment.findMany({
@@ -128,11 +134,35 @@ export default async function AdminPaymentsPage({
 
       {/* Filters */}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-wrap">
           <Suspense fallback={<div className="h-9 bg-gray-100 rounded-lg animate-pulse w-64" />}>
             <SearchInput placeholder="Search by player name or email…" defaultValue={query} className="sm:max-w-xs w-full" />
           </Suspense>
-          {(query || from || to) && (
+          <Suspense fallback={<div className="h-9 bg-gray-100 rounded-lg animate-pulse w-36" />}>
+            <SelectFilter
+              param="status"
+              placeholder="All statuses"
+              defaultValue={status}
+              options={[
+                { label: "Completed", value: "COMPLETED" },
+                { label: "Pending", value: "PENDING" },
+                { label: "Failed", value: "FAILED" },
+                { label: "Refunded", value: "REFUNDED" },
+              ]}
+            />
+          </Suspense>
+          <Suspense fallback={<div className="h-9 bg-gray-100 rounded-lg animate-pulse w-36" />}>
+            <SelectFilter
+              param="source"
+              placeholder="All sources"
+              defaultValue={source}
+              options={[
+                { label: "Online (Stripe)", value: "ONLINE" },
+                { label: "Offline (Cash)", value: "OFFLINE" },
+              ]}
+            />
+          </Suspense>
+          {(query || from || to || status || source) && (
             <Suspense fallback={null}>
               <ClearFiltersButton />
             </Suspense>
@@ -167,7 +197,7 @@ export default async function AdminPaymentsPage({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/60">
-                      {["Player", "Plan", "Amount", "Method", "Status", "Date", "Reference"].map((h) => (
+                      {["Player", "Plan", "Amount", "Method", "Source", "Status", "Date"].map((h) => (
                         <th key={h} className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3 whitespace-nowrap">
                           {h}
                         </th>
@@ -187,12 +217,16 @@ export default async function AdminPaymentsPage({
                         </td>
                         <td className="px-6 py-3.5 text-sm text-gray-600 capitalize">{p.method || "—"}</td>
                         <td className="px-6 py-3.5">
+                          <Badge variant={p.paymentSource === "ONLINE" ? "info" : "default"}>
+                            {p.paymentSource === "ONLINE" ? "Online" : "Offline"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-3.5">
                           <Badge variant={statusColor[p.status] || "default"}>{p.status}</Badge>
                         </td>
                         <td className="px-6 py-3.5 text-sm text-gray-500 whitespace-nowrap">
                           {formatDate(p.createdAt)}
                         </td>
-                        <td className="px-6 py-3.5 text-xs text-gray-400 font-mono">{p.reference || "—"}</td>
                       </tr>
                     ))}
                   </tbody>

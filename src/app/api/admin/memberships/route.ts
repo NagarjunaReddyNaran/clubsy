@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const status = session.user.subscriptionStatus;
+    if (status === "EXPIRED" || status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Your subscription has expired. Please renew to create memberships." },
+        { status: 403 }
+      );
+    }
+
     const { userId, planId, startDate, paymentMethod, paymentReference, notes } = parsed.data;
     const clubId = session.user.clubId ?? null;
 

@@ -1,6 +1,6 @@
 # Clubsy — Complete Technical Documentation
 
-> **Version:** 2.0.0 | **Last Updated:** 2026-04-08 | **Stack:** Next.js 16 · Prisma 6 · PostgreSQL · NextAuth v5
+> **Version:** 2.1.0 | **Last Updated:** 2026-04-15 | **Stack:** Next.js 16 · Prisma 6 · PostgreSQL · NextAuth v5
 
 ---
 
@@ -260,6 +260,7 @@ Booking ──── User (N:1)
 enum Role                { ADMIN  USER }
 enum MembershipStatus    { ACTIVE  EXPIRED  PENDING  CANCELLED }
 enum PaymentStatus       { PENDING  COMPLETED  FAILED  REFUNDED }
+enum PaymentSource       { ONLINE  OFFLINE }                     // ONLINE = Stripe; OFFLINE = cash/manual
 enum ExtensionStatus     { PENDING  APPROVED  REJECTED }
 enum SubscriptionStatus  { TRIAL  ACTIVE  EXPIRED  CANCELLED }
 enum SubscriptionPlan    { BASIC  PREMIUM }        // BASIC = membership only; PREMIUM = + slot booking
@@ -370,10 +371,14 @@ enum AuditAction         {
 | amount | Decimal | Payment amount |
 | currency | String | Default: CAD |
 | status | PaymentStatus | Default: PENDING |
-| method | String? | cash / credit_card / e-transfer |
+| method | String? | cash / credit_card / e-transfer / stripe |
 | reference | String? | Receipt or reference number |
 | notes | String? | Admin notes |
 | paidAt | DateTime? | When payment was confirmed |
+| paymentSource | PaymentSource | ONLINE (Stripe) or OFFLINE (cash/manual); default OFFLINE |
+| stripeSessionId | String? | Stripe Checkout session ID |
+| stripePaymentIntentId | String? | Stripe PaymentIntent ID |
+| invoiceUrl | String? | Stripe hosted invoice URL |
 | createdAt | DateTime | Auto |
 | updatedAt | DateTime | Auto |
 
@@ -735,6 +740,10 @@ Get authenticated user's profile.
 #### `PATCH /api/user/profile`
 Update profile fields.
 **Body:** `{ "name": "Jane Doe", "phone": "+1 555 0100", "currency": "USD" }`
+
+#### `GET /api/user/payments`
+Get the authenticated player's payment history.
+**Response:** `Payment[]` — each with membership plan name, startDate, endDate, paymentSource, invoiceUrl.
 
 ---
 
@@ -1340,6 +1349,7 @@ When any of the following changes, update the corresponding section:
 | 1.2.0 | 2026-03-22 | Email delivery: SMTP wired into Inngest functions and membership service; member Stripe payments via POST /api/memberships/payment; Pay online vs Pay at counter on plans page |
 | 1.3.0 | 2026-03-22 | Public pages: marketing landing page, /contact form (DB + email), /privacy, /terms, /disclaimer; Footer component; admin contact submissions view at /admin/contact |
 | 2.0.0 | 2026-04-08 | Slot-based booking system (PREMIUM only): SubscriptionPlan enum on Club, Slot + Booking models, admin slot management, player book/bookings pages, feature gating via canUseBooking(), plan slotAccess fields, 6 new API routes |
+| 2.1.0 | 2026-04-15 | Payment system enhancements: PaymentSource enum (ONLINE/OFFLINE), stripeSessionId/stripePaymentIntentId/invoiceUrl on Payment model, GET /api/user/payments, /dashboard/payments page, admin payments status+source filters, subscription expiry gates on create-plan and create-membership APIs, trial banner expanded to 7 days |
 
 ### How to Detect Drift
 

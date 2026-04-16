@@ -15,6 +15,7 @@ const userTabsBase = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/plans", label: "Plans", icon: Package },
   { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
+  { href: "/dashboard/payments", label: "Payments", icon: FileText },
   { href: "/dashboard/notifications", label: "Alerts", icon: Bell },
 ];
 

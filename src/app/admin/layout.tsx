@@ -34,7 +34,7 @@ export default async function AdminLayout({
   const showBanner = !!club && (
     club.subscriptionStatus === "EXPIRED" ||
     club.subscriptionStatus === "CANCELLED" ||
-    (club.subscriptionStatus === "TRIAL" && daysLeft <= 3)
+    (club.subscriptionStatus === "TRIAL" && daysLeft <= 7)
   );
 
   return (

@@ -67,6 +67,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum PaymentSource {
+  ONLINE
+  OFFLINE
+}
+
 model Club {
   id                   String             @id @default(cuid())
   name                 String
@@ -218,12 +223,16 @@ model Payment {
   amount       Decimal       @db.Decimal(10, 2)
   currency     String        @default("CAD")
   status       PaymentStatus @default(PENDING)
-  method       String?
-  reference    String?
-  notes        String?       @db.Text
-  paidAt       DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  method                  String?
+  reference               String?
+  notes                   String?       @db.Text
+  paidAt                  DateTime?
+  paymentSource           PaymentSource @default(OFFLINE)
+  stripeSessionId         String?
+  stripePaymentIntentId   String?
+  invoiceUrl              String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   membership Membership @relation(fields: [membershipId], references: [id])

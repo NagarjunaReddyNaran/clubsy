@@ -41,6 +41,7 @@ export async function createMembership(input: CreateMembershipInput) {
         method: paymentMethod ?? "cash",
         reference: paymentReference ?? null,
         paidAt: new Date(),
+        paymentSource: "OFFLINE",
       },
     });
 
@@ -106,6 +107,7 @@ export async function subscribeToPlan(input: SubscribeInput) {
       amount: plan.price,
       status: "PENDING",
       method: "pending",
+      paymentSource: "OFFLINE",
     },
   });
 

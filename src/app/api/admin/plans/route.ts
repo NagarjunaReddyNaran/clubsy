@@ -46,6 +46,14 @@ export async function POST(req: NextRequest) {
       maxBookingsPerWeek,
       maxActiveBookings,
     } = parsed.data;
+    const status = session.user.subscriptionStatus;
+    if (status === "EXPIRED" || status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Your subscription has expired. Please renew to create new plans." },
+        { status: 403 }
+      );
+    }
+
     const clubId = session.user.clubId ?? undefined;
 
     const plan = await prisma.plan.create({

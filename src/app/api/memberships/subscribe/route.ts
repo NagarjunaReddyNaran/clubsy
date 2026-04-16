@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
         amount: plan.price,
         status: "PENDING",
         method: "pending",
+        paymentSource: "OFFLINE",
       },
     });
 
